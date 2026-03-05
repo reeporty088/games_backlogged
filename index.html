@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Backlog de Jogos</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+
+    <header>
+        <div class="header-container">
+            <h1>🎮 Game Backlog</h1>
+            <nav>
+                <button class="btn-primary" id="btn-add-game">
+                    <span class="material-icons">add</span> Novo Jogo
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="stats-dashboard">
+            <div class="stat-card">
+                <h3>Jogos Zerados</h3>
+                <p class="stat-number">45</p>
+            </div>
+            <div class="stat-card">
+                <h3>Platinados (100%)</h3>
+                <p class="stat-number">12</p>
+            </div>
+            <div class="stat-card">
+                <h3>Tempo Total</h3>
+                <p class="stat-number">850h</p>
+            </div>
+        </section>
+
+        <section class="catalog-section">
+            <h2>Meus Jogos</h2>
+            <div class="games-grid" id="games-grid">
+                
+                <div class="game-card">
+                    <img src="https://images.igdb.com/igdb/image/upload/t_cover_big/co1vce.png" alt="Zelda Breath of the Wild" class="game-cover">
+                    <div class="game-info">
+                        <h4 class="game-title">Zelda: Breath of the Wild</h4>
+                        <div class="game-tags">
+                            <span class="tag platform switch">Switch</span>
+                            <span class="tag genre">Aventura</span>
+                        </div>
+                        <div class="game-status">
+                            <span class="status completed">Zerado</span>
+                            <span class="score">⭐ 5/5</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="game-card">
+                    <img src="https://images.igdb.com/igdb/image/upload/t_cover_big/co1tmu.png" alt="Hollow Knight" class="game-cover">
+                    <div class="game-info">
+                        <h4 class="game-title">Hollow Knight</h4>
+                        <div class="game-tags">
+                            <span class="tag platform pc">PC</span>
+                            <span class="tag genre">Metroidvania</span>
+                        </div>
+                        <div class="game-status">
+                            <span class="status platinum">100%</span>
+                            <span class="score">⭐ 5/5</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+</body>
+</html>
