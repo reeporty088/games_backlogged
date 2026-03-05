@@ -74,5 +74,72 @@
         </section>
     </main>
 
+    <div class="modal-overlay" id="modal-novo-jogo">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Adicionar Novo Jogo</h2>
+                <button class="btn-close" id="btn-close-modal">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            
+            <form id="form-jogo">
+                <div class="form-group">
+                    <label for="titulo">Nome do Jogo</label>
+                    <input type="text" id="titulo" required placeholder="Ex: Super Mario Odyssey">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="plataforma">Sistema</label>
+                        <select id="plataforma" required>
+                            <option value="PC">PC</option>
+                            <option value="Nintendo Switch">Nintendo Switch</option>
+                            <option value="PlayStation">PlayStation</option>
+                            <option value="Xbox">Xbox</option>
+                            <option value="Retro">Retro (SNES, Mega Drive, etc)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="genero">Gênero principal</label>
+                        <input type="text" id="genero" required placeholder="Ex: Plataforma 3D">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="status">Condição</label>
+                        <select id="status" required>
+                            <option value="zerado">Zerado</option>
+                            <option value="100">100% (Platinado)</option>
+                            <option value="jogando">Jogando</option>
+                            <option value="dropado">Dropado</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="nota">Nota (1 a 5)</label>
+                        <input type="number" id="nota" min="1" max="5" required placeholder="Ex: 5">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="tempo">Tempo de Jogo</label>
+                    <input type="text" id="tempo" placeholder="Ex: 45:30:00 ou 45h">
+                </div>
+
+                <div class="form-group">
+                    <label for="capaUrl">Link da Capa do Jogo (URL)</label>
+                    <input type="url" id="capaUrl" placeholder="https://link-da-imagem.com/foto.jpg">
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="btn-cancelar">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar Jogo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>
