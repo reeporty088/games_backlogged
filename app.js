@@ -205,8 +205,8 @@ function initPlanoPage() {
     const rect = chart.getBoundingClientRect();
     const xRaw = ev.clientX - rect.left;
     const yRaw = ev.clientY - rect.top;
-    const colIndex = Math.max(0, Math.min(5, Math.round((xRaw / rect.width) * 5)));
-    const rowIndex = Math.max(0, Math.min(5, Math.round((yRaw / rect.height) * 5)));
+    const colIndex = Math.max(0, Math.min(5, Math.floor((xRaw / rect.width) * 6)));
+    const rowIndex = Math.max(0, Math.min(5, Math.floor((yRaw / rect.height) * 6)));
     return { row: LETTERS[rowIndex], col: NUMS[colIndex], rowIndex, colIndex };
   }
 
@@ -217,7 +217,7 @@ function initPlanoPage() {
       const label = document.createElement('span');
       label.className = 'axis-label';
       label.style.left = 'calc(50% + 8px)';
-      label.style.top = `${(i / 5) * 100}%`;
+      label.style.top = `${((i + 0.5) / 6) * 100}%`;
       label.textContent = LETTERS[i];
       chart.appendChild(label);
     }
@@ -226,7 +226,7 @@ function initPlanoPage() {
       const label = document.createElement('span');
       label.className = 'axis-label';
       label.style.top = 'calc(50% + 8px)';
-      label.style.left = `${(i / 5) * 100}%`;
+      label.style.left = `${((i + 0.5) / 6) * 100}%`;
       label.textContent = NUMS[i];
       chart.appendChild(label);
     }
@@ -255,9 +255,13 @@ function initPlanoPage() {
       if (!token) continue;
       const marker = document.createElement('div');
       marker.className = 'token-marker';
-      marker.style.left = `${(Number(rate.col) / 5) * 100}%`;
-      marker.style.top = `${(LETTERS.indexOf(rate.row) / 5) * 100}%`;
+      marker.style.left = `${((Number(rate.col) + 0.5) / 6) * 100}%`;
+      marker.style.top = `${((LETTERS.indexOf(rate.row) + 0.5) / 6) * 100}%`;
       marker.innerHTML = `${getTokenImage(token)}<span>${token.name}</span>`;
+      marker.draggable = true;
+      marker.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/token-id', rate.tokenId);
+      });
       chart.appendChild(marker);
     }
   }

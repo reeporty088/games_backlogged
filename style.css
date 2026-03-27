@@ -290,7 +290,7 @@ input[type="text"], input[type="date"], input[type="file"] {
   border: 2px solid rgba(236,219,255,.75);
   background-image:
     repeating-linear-gradient(to right, transparent 0, transparent calc(16.66% - 1px), rgba(255,255,255,.4) calc(16.66% - 1px), rgba(255,255,255,.4) 16.66%),
-    repeating-linear-gradient(to bottom, transparent 0, transparent calc(20% - 1px), rgba(255,255,255,.4) calc(20% - 1px), rgba(255,255,255,.4) 20%);
+    repeating-linear-gradient(to bottom, transparent 0, transparent calc(16.66% - 1px), rgba(255,255,255,.4) calc(16.66% - 1px), rgba(255,255,255,.4) 16.66%);
 }
 
 .axis-v, .axis-h {
@@ -312,7 +312,8 @@ input[type="text"], input[type="date"], input[type="file"] {
   width: 50px;
   transform: translate(-50%, -50%);
   text-align: center;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: grab;
 }
 
 .token-marker img, .token-marker .token-preview { width: 36px; height: 36px; }
