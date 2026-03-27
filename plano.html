@@ -1,1 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Noites Indie | Plano</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="theme-noites page-plano">
+  <div class="stars" id="stars"></div>
 
+  <header class="topbar">
+    <a href="lista.html" class="mini-link">← Lista</a>
+    <h1>NOITES INDIE • PLANO</h1>
+  </header>
+
+  <main class="plan-layout">
+    <section class="cover-panel neon-card">
+      <h2>Capa do jogo</h2>
+      <div class="cover-square" id="paste-zone" tabindex="0">
+        <canvas id="cover-canvas" width="320" height="320"></canvas>
+        <span id="cover-placeholder">Envie ou cole uma imagem</span>
+      </div>
+      <input type="file" id="cover-input" accept="image/*" />
+      <div class="crop-controls">
+        <label>Zoom <input type="range" id="zoom" min="1" max="3" step="0.01" value="1" /></label>
+        <label>Horizontal <input type="range" id="pan-x" min="-160" max="160" value="0" /></label>
+        <label>Vertical <input type="range" id="pan-y" min="-160" max="160" value="0" /></label>
+      </div>
+    </section>
+
+    <section class="meta-panel neon-card">
+      <form id="game-form">
+        <div class="name-row">
+          <label class="grow">Nome do jogo
+            <input type="text" id="game-name" required placeholder="Ex: Celeste" />
+          </label>
+          <label>Número
+            <input type="text" id="game-number" readonly />
+          </label>
+        </div>
+
+        <label>Data de finalização
+          <input type="date" id="finished-at" />
+        </label>
+
+        <div class="tokens-upload-row">
+          <div>
+            <label>Novo token (imagem)
+              <input type="file" id="token-image-input" accept="image/*" />
+            </label>
+          </div>
+          <div>
+            <label>Nome do token
+              <input type="text" id="token-name-input" placeholder="Quem avaliou" />
+            </label>
+          </div>
+          <button type="button" id="btn-add-token" class="neon-btn small">Adicionar token</button>
+        </div>
+
+        <div id="tokens-strip" class="tokens-strip"></div>
+
+        <div class="chart-shell">
+          <div class="chart-legend top">BOM</div>
+          <div class="chart-legend bottom">RUIM</div>
+          <div class="chart-legend left">DESINTERESSANTE</div>
+          <div class="chart-legend right">INTERESSANTE</div>
+
+          <div id="chart-grid" class="chart-grid" aria-label="Plano cartesiano para notas"></div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="neon-btn">Salvar jogo</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
