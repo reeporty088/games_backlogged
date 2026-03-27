@@ -1,1 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Noites Indie | Lista</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="theme-noites page-lista">
+  <div class="stars" id="stars"></div>
 
+  <header class="topbar">
+    <a href="index.html" class="mini-link">← Início</a>
+    <h1>NOITES INDIE • LISTA</h1>
+  </header>
+
+  <main class="list-main">
+    <section id="games-grid" class="games-grid" aria-live="polite"></section>
+    <p id="empty-list" class="empty-state">Ainda não há jogos. Clique no botão + para criar o primeiro.</p>
+  </main>
+
+  <button class="floating-add" id="btn-new-game" aria-label="Adicionar jogo">+</button>
+
+  <script src="app.js"></script>
+</body>
+</html>

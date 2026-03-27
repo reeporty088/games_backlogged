@@ -1,145 +1,26 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu Backlog de Jogos</title>
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Noites Indie</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="theme-noites page-index">
+  <div class="stars" id="stars"></div>
 
-    <header>
-        <div class="header-container">
-            <h1>🎮 Game Backlog</h1>
-            <nav>
-                <button class="btn-primary" id="btn-add-game">
-                    <span class="material-icons">add</span> Novo Jogo
-                </button>
-            </nav>
-        </div>
-    </header>
+  <main class="home-wrapper">
+    <h1 class="neon-logo" aria-label="Noites Indie">
+      <span class="line-white">NOITES</span>
+      <span class="line-purple">INDIE</span>
+    </h1>
 
-    <main>
-        <section class="stats-dashboard">
-            <div class="stat-card">
-                <h3>Jogos Zerados</h3>
-                <p class="stat-number">45</p>
-            </div>
-            <div class="stat-card">
-                <h3>Platinados (100%)</h3>
-                <p class="stat-number">12</p>
-            </div>
-            <div class="stat-card">
-                <h3>Tempo Total</h3>
-                <p class="stat-number">850h</p>
-            </div>
-        </section>
+    <a href="lista.html" class="neon-btn">Acessar Lista</a>
+  </main>
 
-        <section class="catalog-section">
-            <h2>Meus Jogos</h2>
-            <div class="games-grid" id="games-grid">
-                
-                <div class="game-card">
-                    <img src="https://images.igdb.com/igdb/image/upload/t_cover_big/co1vce.png" alt="Zelda Breath of the Wild" class="game-cover">
-                    <div class="game-info">
-                        <h4 class="game-title">Zelda: Breath of the Wild</h4>
-                        <div class="game-tags">
-                            <span class="tag platform switch">Switch</span>
-                            <span class="tag genre">Aventura</span>
-                        </div>
-                        <div class="game-status">
-                            <span class="status completed">Zerado</span>
-                            <span class="score">⭐ 5/5</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="game-card">
-                    <img src="https://images.igdb.com/igdb/image/upload/t_cover_big/co1tmu.png" alt="Hollow Knight" class="game-cover">
-                    <div class="game-info">
-                        <h4 class="game-title">Hollow Knight</h4>
-                        <div class="game-tags">
-                            <span class="tag platform pc">PC</span>
-                            <span class="tag genre">Metroidvania</span>
-                        </div>
-                        <div class="game-status">
-                            <span class="status platinum">100%</span>
-                            <span class="score">⭐ 5/5</span>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-    </main>
-
-    <div class="modal-overlay" id="modal-novo-jogo">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Adicionar Novo Jogo</h2>
-                <button class="btn-close" id="btn-close-modal">
-                    <span class="material-icons">close</span>
-                </button>
-            </div>
-            
-            <form id="form-jogo">
-                <div class="form-group">
-                    <label for="titulo">Nome do Jogo</label>
-                    <input type="text" id="titulo" required placeholder="Ex: Super Mario Odyssey">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="plataforma">Sistema</label>
-                        <select id="plataforma" required>
-                            <option value="PC">PC</option>
-                            <option value="Nintendo Switch">Nintendo Switch</option>
-                            <option value="PlayStation">PlayStation</option>
-                            <option value="Xbox">Xbox</option>
-                            <option value="Retro">Retro (SNES, Mega Drive, etc)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="genero">Gênero principal</label>
-                        <input type="text" id="genero" required placeholder="Ex: Plataforma 3D">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="status">Condição</label>
-                        <select id="status" required>
-                            <option value="zerado">Zerado</option>
-                            <option value="100">100% (Platinado)</option>
-                            <option value="jogando">Jogando</option>
-                            <option value="dropado">Dropado</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="nota">Nota (1 a 5)</label>
-                        <input type="number" id="nota" min="1" max="5" required placeholder="Ex: 5">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="tempo">Tempo de Jogo</label>
-                    <input type="text" id="tempo" placeholder="Ex: 45:30:00 ou 45h">
-                </div>
-
-                <div class="form-group">
-                    <label for="capaUrl">Link da Capa do Jogo (URL)</label>
-                    <input type="url" id="capaUrl" placeholder="https://link-da-imagem.com/foto.jpg">
-                </div>
-
-                <div class="modal-actions">
-                    <button type="button" class="btn-secondary" id="btn-cancelar">Cancelar</button>
-                    <button type="submit" class="btn-primary">Salvar Jogo</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
