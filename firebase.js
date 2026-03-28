@@ -1,6 +1,7 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
-import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js';
+import { getAnalytics, isSupported as analyticsSupported } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-analytics.js';
+import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-storage.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyBjR55EaCAanFJLwf8fj6hwz1z104zNYlA',
@@ -14,6 +15,13 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+analyticsSupported()
+  .then((supported) => {
+    if (supported) getAnalytics(app);
+  })
+  .catch(() => {
+    // analytics é opcional e pode não estar disponível em alguns ambientes
+  });
 const db = getDatabase(app);
 const storage = getStorage(app);
 const STORE_PATH = 'backlogStore';
