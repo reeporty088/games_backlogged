@@ -31,6 +31,17 @@ async function loadStore() {
 
   try {
     const remote = await loadRemoteStore();
+    const hasRemoteData =
+      remote &&
+      (Array.isArray(remote.games) && remote.games.length > 0
+        || Array.isArray(remote.tokens) && remote.tokens.length > 0);
+
+    if (!hasRemoteData && localStore) {
+      await saveRemoteStore(localStore);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(localStore));
+      return localStore;
+    }
+
     const store = normalizeStore(remote);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
     return store;
@@ -42,8 +53,8 @@ async function loadStore() {
 
 async function saveStore(store) {
   const normalized = normalizeStore(store);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
   await saveRemoteStore(normalized);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
 }
 
 function pad2(n) {
