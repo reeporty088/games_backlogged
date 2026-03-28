@@ -534,8 +534,24 @@ async function initPlanoPage() {
     renderTokensStrip();
   });
 
+  const submitBtn = form.querySelector('button[type="submit"]');
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    if (!form.reportValidity()) return;
+
+    const gameName = nameEl.value.trim();
+    if (!gameName) {
+      alert('Preencha o nome do jogo antes de salvar.');
+      nameEl.focus();
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Salvando...';
+    }
 
     try {
       let coverUrl = currentCoverUrl;
@@ -546,7 +562,7 @@ async function initPlanoPage() {
       const payload = {
         id: game?.id || crypto.randomUUID(),
         number,
-        name: nameEl.value.trim(),
+        name: gameName,
         finishedAt: dateEl.value,
         coverUrl,
         ratings
@@ -561,6 +577,10 @@ async function initPlanoPage() {
     } catch (error) {
       console.error('Erro ao salvar jogo no Firebase:', error);
       alert('Não foi possível salvar o jogo no Firebase.');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Salvar jogo';
+      }
     }
   });
 
