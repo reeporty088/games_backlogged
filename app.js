@@ -1,25 +1,49 @@
+import { loadRemoteStore, saveRemoteStore, uploadImage } from './firebase.js';
+
 const STORAGE_KEY = 'noites_indie_store_v2';
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 const NUMS = ['0', '1', '2', '3', '4', '5'];
 
-function loadStore() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw);
-      if (!parsed.tokens?.length) parsed.tokens = [defaultToken()];
-      return parsed;
-    } catch (_) {}
-  }
-  return { games: [], tokens: [defaultToken()] };
-}
-
-function saveStore(store) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-}
-
 function defaultToken() {
-  return { id: 'token-default', name: 'Teste', imageDataUrl: '' };
+  return { id: 'token-default', name: 'Teste', imageUrl: '' };
+}
+
+function normalizeStore(rawStore) {
+  const base = rawStore || {};
+  const tokens = Array.isArray(base.tokens) && base.tokens.length ? base.tokens : [defaultToken()];
+  const normalizedTokens = tokens.map((token) => ({
+    ...token,
+    imageUrl: token.imageUrl || token.imageDataUrl || ''
+  }));
+  const games = Array.isArray(base.games)
+    ? base.games.map((game) => ({
+        ...game,
+        coverUrl: game.coverUrl || game.coverDataUrl || ''
+      }))
+    : [];
+
+  return { games, tokens: normalizedTokens };
+}
+
+async function loadStore() {
+  const localRaw = localStorage.getItem(STORAGE_KEY);
+  const localStore = localRaw ? normalizeStore(JSON.parse(localRaw)) : null;
+
+  try {
+    const remote = await loadRemoteStore();
+    const store = normalizeStore(remote);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    return store;
+  } catch (error) {
+    console.warn('Falha ao carregar do Firebase. Usando cache local.', error);
+    return localStore || { games: [], tokens: [defaultToken()] };
+  }
+}
+
+async function saveStore(store) {
+  const normalized = normalizeStore(store);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+  await saveRemoteStore(normalized);
 }
 
 function pad2(n) {
@@ -55,11 +79,11 @@ function initStars() {
 }
 
 function getTokenImage(token) {
-  if (!token?.imageDataUrl) return '<div class="token-preview"></div>';
-  return `<img src="${token.imageDataUrl}" alt="${token.name}">`;
+  if (!token?.imageUrl) return '<div class="token-preview"></div>';
+  return `<img src="${token.imageUrl}" alt="${token.name}">`;
 }
 
-function initListaPage() {
+async function initListaPage() {
   const grid = document.getElementById('games-grid');
   if (!grid) return;
 
@@ -69,7 +93,7 @@ function initListaPage() {
     window.location.href = 'plano.html';
   });
 
-  const store = loadStore();
+  const store = await loadStore();
   const games = [...store.games].sort((a, b) => a.number - b.number);
 
   if (!games.length) {
@@ -91,7 +115,7 @@ function initListaPage() {
 
     card.innerHTML = `
       <span class="game-index">${pad2(game.number)}</span>
-      <img class="game-cover" src="${game.coverDataUrl || ''}" alt="${game.name}">
+      <img class="game-cover" src="${game.coverUrl || ''}" alt="${game.name}">
       <div class="game-content">
         <h3>${game.name}</h3>
         <p>Finalizado: ${game.finishedAt || '—'}</p>
@@ -99,7 +123,7 @@ function initListaPage() {
       </div>
     `;
 
-    if (!game.coverDataUrl) {
+    if (!game.coverUrl) {
       card.querySelector('.game-cover').style.background = 'linear-gradient(120deg,#3c1f71,#130927)';
     }
 
@@ -107,14 +131,14 @@ function initListaPage() {
   }
 }
 
-function initPlanoPage() {
+async function initPlanoPage() {
   const form = document.getElementById('game-form');
   if (!form) return;
 
   const params = new URLSearchParams(window.location.search);
   const editingId = params.get('id');
 
-  const store = loadStore();
+  const store = await loadStore();
   const game = store.games.find((g) => g.id === editingId) || null;
 
   const nameEl = document.getElementById('game-name');
@@ -137,7 +161,8 @@ function initPlanoPage() {
 
   const ctx = coverCanvas.getContext('2d');
   let sourceImg = null;
-  let currentCoverDataUrl = game?.coverDataUrl || '';
+  let currentCoverUrl = game?.coverUrl || '';
+  let coverFileToUpload = null;
   let ratings = game?.ratings ? [...game.ratings] : [];
 
   const nextNumber = Math.max(0, ...store.games.map((g) => g.number || 0)) + (game ? 0 : 1);
@@ -149,16 +174,16 @@ function initPlanoPage() {
 
   function renderCover() {
     ctx.clearRect(0, 0, coverCanvas.width, coverCanvas.height);
-    if (!sourceImg && !currentCoverDataUrl) {
+    if (!sourceImg && !currentCoverUrl) {
       placeholder.style.display = 'block';
       return;
     }
 
     placeholder.style.display = 'none';
-    if (!sourceImg && currentCoverDataUrl) {
+    if (!sourceImg && currentCoverUrl) {
       sourceImg = new Image();
       sourceImg.onload = renderCover;
-      sourceImg.src = currentCoverDataUrl;
+      sourceImg.src = currentCoverUrl;
       return;
     }
 
@@ -174,7 +199,15 @@ function initPlanoPage() {
     const dy = (coverCanvas.height - dh) / 2 + py;
 
     ctx.drawImage(sourceImg, dx, dy, dw, dh);
-    currentCoverDataUrl = coverCanvas.toDataURL('image/png');
+  }
+
+  function updateCoverFromCanvas() {
+    return new Promise((resolve) => {
+      coverCanvas.toBlob((blob) => {
+        coverFileToUpload = blob;
+        resolve();
+      }, 'image/png');
+    });
   }
 
   function loadImageFromFile(file) {
@@ -182,11 +215,12 @@ function initPlanoPage() {
     const reader = new FileReader();
     reader.onload = () => {
       sourceImg = new Image();
-      sourceImg.onload = () => {
+      sourceImg.onload = async () => {
         zoomEl.value = '1';
         panXEl.value = '0';
         panYEl.value = '0';
         renderCover();
+        await updateCoverFromCanvas();
       };
       sourceImg.src = reader.result;
     };
@@ -194,7 +228,13 @@ function initPlanoPage() {
   }
 
   coverInput.addEventListener('change', (e) => loadImageFromFile(e.target.files[0]));
-  [zoomEl, panXEl, panYEl].forEach((el) => el.addEventListener('input', renderCover));
+  [zoomEl, panXEl, panYEl].forEach((el) =>
+    el.addEventListener('input', async () => {
+      if (!sourceImg) return;
+      renderCover();
+      await updateCoverFromCanvas();
+    })
+  );
 
   pasteZone.addEventListener('paste', (e) => {
     const item = [...e.clipboardData.items].find((it) => it.type.startsWith('image/'));
@@ -284,46 +324,56 @@ function initPlanoPage() {
     renderRatings();
   });
 
-  addTokenBtn.addEventListener('click', () => {
+  addTokenBtn.addEventListener('click', async () => {
     const tokenName = tokenNameInput.value.trim() || `Token ${store.tokens.length + 1}`;
     const file = tokenImageInput.files[0];
 
-    const pushToken = (imgDataUrl = '') => {
-      store.tokens.push({ id: crypto.randomUUID(), name: tokenName, imageDataUrl: imgDataUrl });
-      saveStore(store);
-      tokenNameInput.value = '';
-      tokenImageInput.value = '';
-      renderTokensStrip();
-    };
-
-    if (!file) {
-      pushToken('');
-      return;
+    let imageUrl = '';
+    if (file) {
+      try {
+        imageUrl = await uploadImage(file, 'tokens');
+      } catch (error) {
+        console.error('Falha ao subir imagem de token:', error);
+        alert('Não foi possível subir a imagem do token para o Firebase.');
+        return;
+      }
     }
 
-    const reader = new FileReader();
-    reader.onload = () => pushToken(reader.result);
-    reader.readAsDataURL(file);
+    store.tokens.push({ id: crypto.randomUUID(), name: tokenName, imageUrl });
+    await saveStore(store);
+    tokenNameInput.value = '';
+    tokenImageInput.value = '';
+    renderTokensStrip();
   });
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const payload = {
-      id: game?.id || crypto.randomUUID(),
-      number,
-      name: nameEl.value.trim(),
-      finishedAt: dateEl.value,
-      coverDataUrl: currentCoverDataUrl,
-      ratings
-    };
+    try {
+      let coverUrl = currentCoverUrl;
+      if (coverFileToUpload) {
+        coverUrl = await uploadImage(coverFileToUpload, 'covers');
+      }
 
-    const idx = store.games.findIndex((g) => g.id === payload.id);
-    if (idx >= 0) store.games[idx] = payload;
-    else store.games.push(payload);
+      const payload = {
+        id: game?.id || crypto.randomUUID(),
+        number,
+        name: nameEl.value.trim(),
+        finishedAt: dateEl.value,
+        coverUrl,
+        ratings
+      };
 
-    saveStore(store);
-    window.location.href = 'lista.html';
+      const idx = store.games.findIndex((g) => g.id === payload.id);
+      if (idx >= 0) store.games[idx] = payload;
+      else store.games.push(payload);
+
+      await saveStore(store);
+      window.location.href = 'lista.html';
+    } catch (error) {
+      console.error('Erro ao salvar jogo no Firebase:', error);
+      alert('Não foi possível salvar o jogo no Firebase.');
+    }
   });
 
   renderChartStatic();
