@@ -94,52 +94,209 @@ function getTokenImage(token) {
   return `<img src="${token.imageUrl}" alt="${token.name}">`;
 }
 
+function normalizeText(value) {
+  return (value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function levenshteinDistance(a, b) {
+  const alen = a.length;
+  const blen = b.length;
+  if (!alen) return blen;
+  if (!blen) return alen;
+
+  const matrix = Array.from({ length: alen + 1 }, () => Array(blen + 1).fill(0));
+  for (let i = 0; i <= alen; i += 1) matrix[i][0] = i;
+  for (let j = 0; j <= blen; j += 1) matrix[0][j] = j;
+
+  for (let i = 1; i <= alen; i += 1) {
+    for (let j = 1; j <= blen; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
+    }
+  }
+
+  return matrix[alen][blen];
+}
+
+function gameSearchScore(gameName, query) {
+  const name = normalizeText(gameName);
+  const q = normalizeText(query);
+  if (!q) return 0;
+  if (!name) return 999;
+  if (name === q) return 0;
+  if (name.startsWith(q)) return 0.2;
+  if (name.includes(q)) return 0.35;
+  const distance = levenshteinDistance(name, q);
+  return distance / Math.max(name.length, q.length);
+}
+
+function parseGameDate(value) {
+  if (!value) return 0;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function gameRatingsScore(game) {
+  if (!Array.isArray(game.ratings) || !game.ratings.length) return -1;
+  const sum = game.ratings.reduce((acc, rate) => {
+    const rowIndex = LETTERS.indexOf(rate.row);
+    const col = Number(rate.col);
+    if (rowIndex < 0 || Number.isNaN(col)) return acc;
+    const rowValue = 5 - rowIndex;
+    return acc + rowValue * 6 + col;
+  }, 0);
+  return sum / game.ratings.length;
+}
+
 async function initListaPage() {
   const grid = document.getElementById('games-grid');
   if (!grid) return;
 
   const empty = document.getElementById('empty-list');
   const addBtn = document.getElementById('btn-new-game');
+  const searchInput = document.getElementById('search-games');
+  const sortButtons = [...document.querySelectorAll('.sort-btn')];
   addBtn?.addEventListener('click', () => {
     window.location.href = 'plano.html';
   });
 
   const store = await loadStore();
-  const games = [...store.games].sort((a, b) => a.number - b.number);
+  const games = store.games.map((game, index) => ({ ...game, addedIndex: index }));
+  const sortState = {
+    mode: 'added',
+    direction: 'asc',
+    search: ''
+  };
+
+  function updateSortButtons() {
+    sortButtons.forEach((button) => {
+      const isCurrent = button.dataset.sort === sortState.mode;
+      button.classList.toggle('is-active', isCurrent);
+      button.setAttribute('aria-pressed', String(isCurrent));
+      if (!isCurrent) {
+        button.removeAttribute('title');
+        return;
+      }
+      const directionLabel = sortState.direction === 'asc' ? '↑' : '↓';
+      button.title = `Ordenação atual ${directionLabel}`;
+    });
+  }
 
   if (!games.length) {
     empty.style.display = 'block';
     return;
   }
 
-  empty.style.display = 'none';
-  grid.innerHTML = '';
+  function applyFiltersAndSort() {
+    const query = sortState.search;
+    const filtered = games
+      .map((game) => ({ ...game, searchScore: gameSearchScore(game.name, query) }))
+      .filter((game) => !query || game.searchScore <= 0.72);
 
-  for (const game of games) {
-    const card = document.createElement('article');
-    card.className = 'game-card';
-    card.addEventListener('click', () => {
-      window.location.href = `plano.html?id=${game.id}`;
-    });
-
-    const notes = (game.ratings || []).map((r) => `${r.tokenName}: ${r.row}${r.col}`).join('<br>') || 'Sem notas';
-
-    card.innerHTML = `
-      <span class="game-index">${pad2(game.number)}</span>
-      <img class="game-cover" src="${game.coverUrl || ''}" alt="${game.name}">
-      <div class="game-content">
-        <h3>${game.name}</h3>
-        <p>Finalizado: ${game.finishedAt || '—'}</p>
-        <div class="notes-list">${notes}</div>
-      </div>
-    `;
-
-    if (!game.coverUrl) {
-      card.querySelector('.game-cover').style.background = 'linear-gradient(120deg,#3c1f71,#130927)';
+    if (query) {
+      filtered.sort((a, b) => a.searchScore - b.searchScore || a.name.localeCompare(b.name, 'pt-BR'));
     }
 
-    grid.appendChild(card);
+    filtered.sort((a, b) => {
+      let result = 0;
+      if (sortState.mode === 'date') {
+        result = parseGameDate(b.finishedAt) - parseGameDate(a.finishedAt);
+      } else if (sortState.mode === 'rating') {
+        result = gameRatingsScore(b) - gameRatingsScore(a);
+      } else if (sortState.mode === 'alpha') {
+        result = a.name.localeCompare(b.name, 'pt-BR');
+      } else {
+        result = a.addedIndex - b.addedIndex;
+      }
+
+      if (sortState.mode !== 'rating' && sortState.direction === 'desc') {
+        result *= -1;
+      }
+      return result || a.number - b.number;
+    });
+
+    return filtered;
   }
+
+  async function handleDeleteGame(gameId, gameName) {
+    const ok = window.confirm(`Tem certeza que deseja deletar "${gameName}" da lista?`);
+    if (!ok) return;
+    const idx = store.games.findIndex((game) => game.id === gameId);
+    if (idx < 0) return;
+    store.games.splice(idx, 1);
+    await saveStore(store);
+    const localIdx = games.findIndex((game) => game.id === gameId);
+    if (localIdx >= 0) games.splice(localIdx, 1);
+    renderList();
+  }
+
+  function renderList() {
+    const filteredGames = applyFiltersAndSort();
+    empty.style.display = filteredGames.length ? 'none' : 'block';
+    grid.innerHTML = '';
+
+    for (const game of filteredGames) {
+      const card = document.createElement('article');
+      card.className = 'game-card';
+      card.addEventListener('click', () => {
+        window.location.href = `plano.html?id=${game.id}`;
+      });
+
+      const notes = (game.ratings || []).map((r) => `${r.tokenName}: ${r.row}${r.col}`).join('<br>') || 'Sem notas';
+
+      card.innerHTML = `
+        <button type="button" class="delete-btn" aria-label="Deletar jogo">×</button>
+        <span class="game-index">${pad2(game.number)}</span>
+        <img class="game-cover" src="${game.coverUrl || ''}" alt="${game.name}">
+        <div class="game-content">
+          <h3>${game.name}</h3>
+          <p>Finalizado: ${game.finishedAt || '—'}</p>
+          <div class="notes-list">${notes}</div>
+        </div>
+      `;
+
+      card.querySelector('.delete-btn').addEventListener('click', async (event) => {
+        event.stopPropagation();
+        await handleDeleteGame(game.id, game.name);
+      });
+
+      if (!game.coverUrl) {
+        card.querySelector('.game-cover').style.background = 'linear-gradient(120deg,#3c1f71,#130927)';
+      }
+
+      grid.appendChild(card);
+    }
+  }
+
+  sortButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const mode = button.dataset.sort;
+      if (sortState.mode === mode && (mode === 'date' || mode === 'added')) {
+        sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortState.mode = mode;
+        sortState.direction = 'asc';
+      }
+      updateSortButtons();
+      renderList();
+    });
+  });
+
+  searchInput?.addEventListener('input', () => {
+    sortState.search = searchInput.value || '';
+    renderList();
+  });
+
+  updateSortButtons();
+  renderList();
 }
 
 async function initPlanoPage() {
@@ -290,10 +447,30 @@ async function initPlanoPage() {
       chip.className = 'token-chip';
       chip.draggable = true;
       chip.dataset.tokenId = token.id;
-      chip.innerHTML = `${getTokenImage(token)}<span>${token.name}</span>`;
+      chip.innerHTML = `
+        <button type="button" class="token-delete-btn" aria-label="Deletar token">×</button>
+        ${getTokenImage(token)}
+        <span>${token.name}</span>
+      `;
       chip.addEventListener('dragstart', (e) => {
         e.dataTransfer.setData('text/token-id', token.id);
       });
+
+      chip.querySelector('.token-delete-btn').addEventListener('click', async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const ok = window.confirm(`Tem certeza que deseja deletar o token "${token.name}"?`);
+        if (!ok) return;
+        store.tokens = store.tokens.filter((candidate) => candidate.id !== token.id);
+        if (!store.tokens.length) {
+          store.tokens = [defaultToken()];
+        }
+        ratings = ratings.filter((rate) => rate.tokenId !== token.id);
+        await saveStore(store);
+        renderTokensStrip();
+        renderRatings();
+      });
+
       tokensStrip.appendChild(chip);
     }
   }

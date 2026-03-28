@@ -18,6 +18,20 @@
   </header>
 
   <main class="list-main">
+    <section class="list-controls neon-card" aria-label="Busca e ordenação de jogos">
+      <label class="search-field" for="search-games">
+        Buscar jogo
+        <input type="text" id="search-games" placeholder="Digite o nome do jogo" autocomplete="off" />
+      </label>
+
+      <div class="sort-controls" role="group" aria-label="Ordenação da lista">
+        <button type="button" class="sort-btn is-active" data-sort="added" aria-pressed="true">Ordem de adição</button>
+        <button type="button" class="sort-btn" data-sort="date" aria-pressed="false">Data</button>
+        <button type="button" class="sort-btn" data-sort="rating" aria-pressed="false">Melhores notas</button>
+        <button type="button" class="sort-btn" data-sort="alpha" aria-pressed="false">Alfabética</button>
+      </div>
+    </section>
+
     <section id="games-grid" class="games-grid" aria-live="polite"></section>
     <p id="empty-list" class="empty-state">Ainda não há jogos. Clique no botão + para criar o primeiro.</p>
   </main>
