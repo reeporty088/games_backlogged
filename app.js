@@ -53,8 +53,29 @@ async function loadStore() {
 
 async function saveStore(store) {
   const normalized = normalizeStore(store);
-  await saveRemoteStore(normalized);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+
+  try {
+    await withTimeout(saveRemoteStore(normalized), 12000, 'salvar no Firebase');
+    return { remoteSynced: true };
+  } catch (error) {
+    console.warn('Falha ao salvar no Firebase. Dados mantidos no cache local.', error);
+    return { remoteSynced: false };
+  }
+}
+
+
+function withTimeout(promise, timeoutMs, operationName) {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => {
+      reject(new Error(`Tempo excedido ao ${operationName}.`));
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    window.clearTimeout(timeoutId);
+  });
 }
 
 function pad2(n) {
@@ -519,7 +540,7 @@ async function initPlanoPage() {
     let imageUrl = '';
     if (file) {
       try {
-        imageUrl = await uploadImage(file, 'tokens');
+        imageUrl = await withTimeout(uploadImage(file, 'tokens'), 15000, 'enviar token');
       } catch (error) {
         console.error('Falha ao subir imagem de token:', error);
         alert('Não foi possível subir a imagem do token para o Firebase.');
@@ -556,7 +577,7 @@ async function initPlanoPage() {
     try {
       let coverUrl = currentCoverUrl;
       if (coverFileToUpload) {
-        coverUrl = await uploadImage(coverFileToUpload, 'covers');
+        coverUrl = await withTimeout(uploadImage(coverFileToUpload, 'covers'), 15000, 'enviar capa');
       }
 
       const payload = {
@@ -572,7 +593,10 @@ async function initPlanoPage() {
       if (idx >= 0) store.games[idx] = payload;
       else store.games.push(payload);
 
-      await saveStore(store);
+      const result = await saveStore(store);
+      if (!result.remoteSynced) {
+        alert('Jogo salvo no dispositivo, mas não foi possível sincronizar com o Firebase agora.');
+      }
       window.location.href = 'lista.html';
     } catch (error) {
       console.error('Erro ao salvar jogo no Firebase:', error);
