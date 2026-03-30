@@ -579,20 +579,35 @@ async function initPlanoPage() {
 
   function renderRatings() {
     chart.querySelectorAll('.token-marker').forEach((node) => node.remove());
+    const markersByCell = new Map();
 
     for (const rate of ratings) {
       const token = store.tokens.find((t) => t.id === rate.tokenId);
       if (!token) continue;
-      const marker = document.createElement('div');
-      marker.className = 'token-marker';
-      marker.style.left = `${((Number(rate.col) + 0.5) / 6) * 100}%`;
-      marker.style.top = `${((LETTERS.indexOf(rate.row) + 0.5) / 6) * 100}%`;
-      marker.innerHTML = `${getTokenImage(token)}<span>${token.name}</span>`;
-      marker.draggable = true;
-      marker.addEventListener('dragstart', (e) => {
-        e.dataTransfer.setData('text/token-id', rate.tokenId);
+      const cellKey = `${rate.row}:${rate.col}`;
+      const bucket = markersByCell.get(cellKey) || [];
+      bucket.push(rate);
+      markersByCell.set(cellKey, bucket);
+    }
+
+    for (const ratesInCell of markersByCell.values()) {
+      const spacing = 42;
+      const total = ratesInCell.length;
+      ratesInCell.forEach((rate, index) => {
+        const token = store.tokens.find((t) => t.id === rate.tokenId);
+        if (!token) return;
+        const marker = document.createElement('div');
+        marker.className = 'token-marker';
+        marker.style.left = `${((Number(rate.col) + 0.5) / 6) * 100}%`;
+        marker.style.top = `${((LETTERS.indexOf(rate.row) + 0.5) / 6) * 100}%`;
+        marker.style.setProperty('--stack-offset', `${(index - (total - 1) / 2) * spacing}px`);
+        marker.innerHTML = `${getTokenImage(token)}<span>${token.name}</span>`;
+        marker.draggable = true;
+        marker.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/token-id', rate.tokenId);
+        });
+        chart.appendChild(marker);
       });
-      chart.appendChild(marker);
     }
   }
 
