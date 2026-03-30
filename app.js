@@ -428,7 +428,6 @@ async function initPlanoPage() {
   const ctx = coverCanvas.getContext('2d');
   let sourceImg = null;
   let currentCoverUrl = game?.coverUrl || '';
-  let coverFileToUpload = null;
   let ratings = game?.ratings ? [...game.ratings] : [];
 
   const nextNumber = Math.max(0, ...store.games.map((g) => g.number || 0)) + (game ? 0 : 1);
@@ -469,20 +468,12 @@ async function initPlanoPage() {
   }
 
   function updateCoverFromCanvas() {
-    return new Promise((resolve, reject) => {
-      try {
-        coverCanvas.toBlob((blob) => {
-          if (!blob) {
-            reject(new Error('Não foi possível preparar a capa para envio.'));
-            return;
-          }
-          coverFileToUpload = new File([blob], `cover-${Date.now()}.webp`, { type: 'image/webp' });
-          resolve();
-        }, 'image/webp', 0.9);
-      } catch (error) {
-        reject(error);
-      }
-    });
+    try {
+      currentCoverUrl = coverCanvas.toDataURL('image/webp', 0.9);
+      return Promise.resolve();
+    } catch (error) {
+      return Promise.reject(new Error('Não foi possível preparar a capa para salvar.'));
+    }
   }
 
   function loadImageFromFile(file) {
@@ -666,17 +657,12 @@ async function initPlanoPage() {
     }
 
     try {
-      let coverUrl = currentCoverUrl;
-      if (coverFileToUpload) {
-        coverUrl = await withTimeout(uploadImage(coverFileToUpload, 'covers'), 15000, 'enviar capa');
-      }
-
       const payload = {
         id: game?.id || crypto.randomUUID(),
         number,
         name: gameName,
         finishedAt: dateEl.value,
-        coverUrl,
+        coverUrl: currentCoverUrl,
         ratings
       };
 
