@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cantinho da Leitura | Plano</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="theme-livros page-plano-livros">
+  <header class="topbar livros-topbar">
+    <a href="lista_livros.html" class="mini-link livros-mini-link">← Lista</a>
+    <h1>CANTINHO DA LEITURA • PAINEL</h1>
+  </header>
+
+  <main class="plan-layout">
+    <section class="cover-panel livros-card">
+      <h2>Capa do livro</h2>
+      <div class="cover-square livros-cover" id="paste-zone" tabindex="0">
+        <canvas id="cover-canvas" width="320" height="320"></canvas>
+        <span id="cover-placeholder">Envie ou cole uma imagem</span>
+      </div>
+      <input type="file" id="cover-input" accept="image/*" />
+      <div class="crop-controls">
+        <label>Zoom <input type="range" id="zoom" min="1" max="3" step="0.01" value="1" /></label>
+        <label>Horizontal <input type="range" id="pan-x" min="-160" max="160" value="0" /></label>
+        <label>Vertical <input type="range" id="pan-y" min="-160" max="160" value="0" /></label>
+      </div>
+    </section>
+
+    <section class="meta-panel livros-card">
+      <form id="book-form">
+        <div class="name-row">
+          <label class="grow">Nome do livro
+            <input type="text" id="book-name" required placeholder="Ex: Orgulho e Preconceito" />
+          </label>
+          <label>Número
+            <input type="text" id="book-number" readonly />
+          </label>
+        </div>
+
+        <label>Data de finalização
+          <input type="date" id="finished-at" />
+        </label>
+
+        <div class="tokens-upload-row">
+          <div>
+            <label>Novo token (imagem)
+              <input type="file" id="token-image-input" accept="image/*" />
+            </label>
+          </div>
+          <div>
+            <label>Nome do token
+              <input type="text" id="token-name-input" placeholder="Quem avaliou" />
+            </label>
+          </div>
+          <button type="button" id="btn-add-token" class="livros-btn small">Adicionar token</button>
+        </div>
+
+        <label>O que achou do livro?
+          <textarea id="book-opinion" rows="4" placeholder="Escreva aqui sua opinião..."></textarea>
+        </label>
+
+        <div id="tokens-strip" class="tokens-strip"></div>
+
+        <div class="chart-shell livros-chart-shell">
+          <div class="chart-legend top">BOM</div>
+          <div class="chart-legend bottom">RUIM</div>
+          <div class="chart-legend left">DESINTERESSANTE</div>
+          <div class="chart-legend right">INTERESSANTE</div>
+
+          <div id="chart-grid" class="chart-grid" aria-label="Plano cartesiano para notas"></div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="livros-btn">Salvar livro</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script type="module" src="app_livros.js"></script>
+</body>
+</html>

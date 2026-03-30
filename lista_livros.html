@@ -1,1 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cantinho da Leitura | Lista</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Cormorant+Garamond:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="theme-livros page-lista-livros">
+  <header class="topbar livros-topbar">
+    <a href="index_livros.html" class="mini-link livros-mini-link">← Início</a>
+    <h1>CANTINHO DA LEITURA • LISTA</h1>
+  </header>
 
+  <main class="list-main">
+    <section class="list-controls livros-card" aria-label="Busca e ordenação de livros">
+      <label class="search-field" for="search-books">
+        Buscar livro
+        <input type="text" id="search-books" placeholder="Digite o nome do livro" autocomplete="off" />
+      </label>
+
+      <div class="sort-controls" role="group" aria-label="Ordenação da lista">
+        <button type="button" class="sort-btn is-active" data-sort="added" aria-pressed="true">Ordem de adição</button>
+        <button type="button" class="sort-btn" data-sort="date" aria-pressed="false">Data</button>
+        <button type="button" class="sort-btn" data-sort="rating" aria-pressed="false">Melhores notas</button>
+        <button type="button" class="sort-btn" data-sort="alpha" aria-pressed="false">Alfabética</button>
+      </div>
+    </section>
+
+    <section id="books-grid" class="games-grid livros-grid" aria-live="polite"></section>
+    <p id="empty-books" class="empty-state">Ainda não há livros. Clique no botão + para criar o primeiro.</p>
+  </main>
+
+  <button class="floating-add livros-add" id="btn-new-book" aria-label="Adicionar livro">+</button>
+
+  <script type="module" src="app_livros.js"></script>
+</body>
+</html>
