@@ -328,6 +328,35 @@ async function initPlanoLivroPage() {
     return { row: LETTERS[rowIndex], col: NUMS[colIndex] };
   }
 
+  function updateRatingPosition(tokenId, pos) {
+    if (!tokenId || !pos) return;
+    const token = store.bookTokens.find((candidate) => candidate.id === tokenId);
+    if (!token) return;
+
+    const existingIndex = ratings.findIndex((rate) => rate.tokenId === tokenId);
+    const payload = { tokenId, tokenName: token.name, row: pos.row, col: pos.col };
+    if (existingIndex >= 0) ratings[existingIndex] = payload;
+    else ratings.push(payload);
+
+    renderRatings();
+  }
+
+  let selectedTokenId = null;
+
+  function syncSelectedTokenVisualState() {
+    tokensStrip.querySelectorAll('.token-chip').forEach((chip) => {
+      chip.classList.toggle('token-selected', chip.dataset.tokenId === selectedTokenId);
+    });
+    chart.querySelectorAll('.token-marker').forEach((marker) => {
+      marker.classList.toggle('token-selected', marker.dataset.tokenId === selectedTokenId);
+    });
+  }
+
+  function setSelectedToken(tokenId) {
+    selectedTokenId = tokenId;
+    syncSelectedTokenVisualState();
+  }
+
   function renderChartStatic() {
     chart.innerHTML = '<div class="axis-v"></div><div class="axis-h"></div>';
     for (let i = 0; i < LETTERS.length; i += 1) {
@@ -363,12 +392,18 @@ async function initPlanoLivroPage() {
       chip.addEventListener('dragstart', (e) => {
         e.dataTransfer.setData('text/token-id', token.id);
       });
+      chip.addEventListener('click', () => {
+        setSelectedToken(token.id);
+      });
       chip.querySelector('.token-delete-btn').addEventListener('click', async (event) => {
         event.preventDefault();
         event.stopPropagation();
         if (!window.confirm(`Tem certeza que deseja deletar o token "${token.name}"?`)) return;
         store.bookTokens = store.bookTokens.filter((candidate) => candidate.id !== token.id);
         if (!store.bookTokens.length) store.bookTokens = [defaultToken()];
+        if (selectedTokenId === token.id) {
+          selectedTokenId = null;
+        }
         ratings = ratings.filter((rate) => rate.tokenId !== token.id);
         await saveStore(store);
         renderTokensStrip();
@@ -403,13 +438,18 @@ async function initPlanoLivroPage() {
         marker.style.top = `${((LETTERS.indexOf(rate.row) + 0.5) / 6) * 100}%`;
         marker.style.setProperty('--stack-offset', `${(index - (total - 1) / 2) * spacing}px`);
         marker.innerHTML = `${getTokenImage(token)}<span>${token.name}</span>`;
+        marker.dataset.tokenId = rate.tokenId;
         marker.draggable = true;
         marker.addEventListener('dragstart', (e) => {
           e.dataTransfer.setData('text/token-id', rate.tokenId);
         });
+        marker.addEventListener('click', () => {
+          setSelectedToken(rate.tokenId);
+        });
         chart.appendChild(marker);
       });
     }
+    syncSelectedTokenVisualState();
   }
 
   chart.addEventListener('dragover', (e) => e.preventDefault());
@@ -418,14 +458,14 @@ async function initPlanoLivroPage() {
     const tokenId = e.dataTransfer.getData('text/token-id');
     if (!tokenId) return;
     const pos = getPointFromEvent(e);
-    const token = store.bookTokens.find((candidate) => candidate.id === tokenId);
-    if (!token) return;
+    updateRatingPosition(tokenId, pos);
+  });
 
-    const existingIndex = ratings.findIndex((rate) => rate.tokenId === tokenId);
-    const payload = { tokenId, tokenName: token.name, row: pos.row, col: pos.col };
-    if (existingIndex >= 0) ratings[existingIndex] = payload;
-    else ratings.push(payload);
-    renderRatings();
+  chart.addEventListener('click', (e) => {
+    if (!selectedTokenId) return;
+    if (e.target.closest('.token-marker')) return;
+    const pos = getPointFromEvent(e);
+    updateRatingPosition(selectedTokenId, pos);
   });
 
   addTokenBtn.addEventListener('click', async () => {

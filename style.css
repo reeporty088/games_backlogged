@@ -301,6 +301,10 @@ input[type="text"], input[type="date"], input[type="file"] {
   cursor: grab;
   position: relative;
   padding-top: .2rem;
+  border: 1px solid rgba(255, 170, 220, .95);
+  border-radius: 10px;
+  background: linear-gradient(160deg, rgba(255, 86, 186, .45), rgba(171, 42, 150, .36));
+  box-shadow: 0 0 10px rgba(255, 82, 184, .35);
 }
 
 .token-delete-btn {
@@ -389,6 +393,15 @@ input[type="text"], input[type="date"], input[type="file"] {
   text-align: center;
   pointer-events: auto;
   cursor: grab;
+  border: 1px solid rgba(255, 170, 220, .9);
+  border-radius: 10px;
+  background: linear-gradient(160deg, rgba(255, 86, 186, .52), rgba(171, 42, 150, .4));
+  box-shadow: 0 0 10px rgba(255, 82, 184, .35);
+}
+
+.token-selected {
+  border-color: #ffd8f0 !important;
+  box-shadow: 0 0 0 2px rgba(255, 216, 240, .6), 0 0 16px rgba(255, 102, 198, .7) !important;
 }
 
 .token-marker img, .token-marker .token-preview { width: 36px; height: 36px; }
