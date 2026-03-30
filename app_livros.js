@@ -34,7 +34,11 @@ function normalizeStore(rawStore) {
 }
 
 function persistLocalStore(store) {
-  localStorage.setItem(LOCAL_BOOKS_KEY, JSON.stringify({ books: store.books, bookTokens: store.bookTokens }));
+  try {
+    localStorage.setItem(LOCAL_BOOKS_KEY, JSON.stringify({ books: store.books, bookTokens: store.bookTokens }));
+  } catch (error) {
+    console.warn('Falha ao salvar livros no cache local. O armazenamento pode estar cheio.', error);
+  }
 }
 
 async function loadStore() {
@@ -55,7 +59,27 @@ async function loadStore() {
 async function saveStore(store) {
   const normalized = normalizeStore(store);
   persistLocalStore(normalized);
-  await saveRemoteStore(normalized);
+
+  try {
+    await withTimeout(saveRemoteStore(normalized), 12000, 'salvar livros no Firebase');
+    return { remoteSynced: true };
+  } catch (error) {
+    console.warn('Falha ao salvar livros no Firebase. Dados mantidos no cache local.', error);
+    return { remoteSynced: false };
+  }
+}
+
+function withTimeout(promise, timeoutMs, operationName) {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => {
+      reject(new Error(`Tempo excedido ao ${operationName}.`));
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    window.clearTimeout(timeoutId);
+  });
 }
 
 function normalizeText(value) {
@@ -473,10 +497,19 @@ async function initPlanoLivroPage() {
     const file = tokenImageInput.files[0];
     let imageUrl = '';
     if (file) {
-      imageUrl = await uploadImage(file, 'book-tokens');
+      try {
+        imageUrl = await withTimeout(uploadImage(file, 'book-tokens'), 15000, 'enviar token');
+      } catch (error) {
+        console.error('Falha ao subir imagem de token:', error);
+        alert('Não foi possível subir a imagem do token para o Firebase.');
+        return;
+      }
     }
     store.bookTokens.push({ id: crypto.randomUUID(), name: tokenName, imageUrl });
-    await saveStore(store);
+    const { remoteSynced } = await saveStore(store);
+    if (!remoteSynced) {
+      alert('Token salvo somente no navegador. Verifique a conexão com o Firebase.');
+    }
     tokenNameInput.value = '';
     tokenImageInput.value = '';
     renderTokensStrip();
