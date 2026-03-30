@@ -520,6 +520,52 @@ async function initPlanoPage() {
     return { row: LETTERS[rowIndex], col: NUMS[colIndex], rowIndex, colIndex };
   }
 
+  function getPointFromTouch(touch) {
+    if (!touch) return null;
+    return getPointFromEvent({ clientX: touch.clientX, clientY: touch.clientY });
+  }
+
+  function updateRatingPosition(tokenId, pos) {
+    if (!tokenId || !pos) return;
+    const token = store.tokens.find((candidate) => candidate.id === tokenId);
+    if (!token) return;
+
+    const existingIndex = ratings.findIndex((rate) => rate.tokenId === tokenId);
+    const payload = { tokenId, tokenName: token.name, row: pos.row, col: pos.col };
+    if (existingIndex >= 0) ratings[existingIndex] = payload;
+    else ratings.push(payload);
+
+    renderRatings();
+  }
+
+  let activeTouchTokenId = null;
+
+  function attachTouchDrag(el, tokenId) {
+    el.addEventListener('touchstart', (event) => {
+      if (!event.touches?.length) return;
+      activeTouchTokenId = tokenId;
+      event.preventDefault();
+    }, { passive: false });
+  }
+
+  chart.addEventListener('touchmove', (event) => {
+    if (!activeTouchTokenId) return;
+    event.preventDefault();
+  }, { passive: false });
+
+  chart.addEventListener('touchend', (event) => {
+    if (!activeTouchTokenId) return;
+    const touch = event.changedTouches?.[0];
+    const pos = getPointFromTouch(touch);
+    updateRatingPosition(activeTouchTokenId, pos);
+    activeTouchTokenId = null;
+    event.preventDefault();
+  }, { passive: false });
+
+  chart.addEventListener('touchcancel', () => {
+    activeTouchTokenId = null;
+  });
+
   function renderChartStatic() {
     chart.innerHTML = '<div class="axis-v"></div><div class="axis-h"></div>';
 
@@ -557,6 +603,7 @@ async function initPlanoPage() {
       chip.addEventListener('dragstart', (e) => {
         e.dataTransfer.setData('text/token-id', token.id);
       });
+      attachTouchDrag(chip, token.id);
 
       chip.querySelector('.token-delete-btn').addEventListener('click', async (event) => {
         event.preventDefault();
@@ -606,6 +653,7 @@ async function initPlanoPage() {
         marker.addEventListener('dragstart', (e) => {
           e.dataTransfer.setData('text/token-id', rate.tokenId);
         });
+        attachTouchDrag(marker, rate.tokenId);
         chart.appendChild(marker);
       });
     }
@@ -618,15 +666,7 @@ async function initPlanoPage() {
     if (!tokenId) return;
 
     const pos = getPointFromEvent(e);
-    const token = store.tokens.find((t) => t.id === tokenId);
-    if (!token) return;
-
-    const existingIndex = ratings.findIndex((r) => r.tokenId === tokenId);
-    const payload = { tokenId, tokenName: token.name, row: pos.row, col: pos.col };
-    if (existingIndex >= 0) ratings[existingIndex] = payload;
-    else ratings.push(payload);
-
-    renderRatings();
+    updateRatingPosition(tokenId, pos);
   });
 
   addTokenBtn.addEventListener('click', async () => {
