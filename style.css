@@ -335,7 +335,7 @@ input[type="text"], input[type="date"], input[type="file"] {
   border: 2px solid rgba(236,219,255,.75);
   border-radius: 12px;
   padding: 1.5rem;
-  background: linear-gradient(145deg, rgba(75, 27, 140, 0.75), rgba(39, 18, 80, 0.82));
+  background: linear-gradient(145deg, rgba(16, 56, 84, 0.84), rgba(8, 28, 49, 0.88));
 }
 
 .chart-legend {
@@ -348,13 +348,19 @@ input[type="text"], input[type="date"], input[type="file"] {
 }
 .chart-legend.top { top: .25rem; left: 50%; transform: translateX(-50%); }
 .chart-legend.bottom { bottom: .25rem; left: 50%; transform: translateX(-50%); }
-.chart-legend.left { left: .2rem; top: 50%; transform: translateY(-50%); }
-.chart-legend.right { right: .2rem; top: 50%; transform: translateY(-50%); }
+.chart-legend.left { left: .2rem; top: 50%; transform: translateY(-50%) rotate(-90deg); }
+.chart-legend.right { right: .2rem; top: 50%; transform: translateY(-50%) rotate(90deg); }
+.chart-legend.left,
+.chart-legend.right {
+  display: inline-block;
+  white-space: nowrap;
+  transform-origin: center;
+}
 
 .chart-grid {
   position: relative;
-  width: min(100%, 840px);
-  height: min(74vh, 620px);
+  width: min(100%, 74vh, 840px);
+  aspect-ratio: 1 / 1;
   margin: 0 auto;
   border: 2px solid rgba(236,219,255,.75);
   background-image:
@@ -379,7 +385,7 @@ input[type="text"], input[type="date"], input[type="file"] {
 .token-marker {
   position: absolute;
   width: 50px;
-  transform: translate(-50%, -50%);
+  transform: translate(calc(-50% + var(--stack-offset, 0px)), -50%);
   text-align: center;
   pointer-events: auto;
   cursor: grab;
@@ -562,8 +568,29 @@ body.theme-livros .chart-grid {
   border-color: rgba(122, 61, 87, .4);
 }
 
+body.theme-livros .chart-shell {
+  background: linear-gradient(145deg, rgba(255, 248, 252, .96), rgba(252, 230, 240, .98));
+}
+
+body.theme-livros .chart-grid {
+  background-color: #fff8fc;
+  background-image:
+    repeating-linear-gradient(to right, transparent 0, transparent calc(16.66% - 1px), rgba(174, 117, 141, .3) calc(16.66% - 1px), rgba(174, 117, 141, .3) 16.66%),
+    repeating-linear-gradient(to bottom, transparent 0, transparent calc(16.66% - 1px), rgba(174, 117, 141, .3) calc(16.66% - 1px), rgba(174, 117, 141, .3) 16.66%);
+}
+
 body.theme-livros .axis-h,
 body.theme-livros .axis-v { background: rgba(122, 61, 87, .5); }
+
+body.theme-livros .axis-label {
+  color: #6e3450;
+  text-shadow: none;
+}
+
+body.theme-livros .chart-legend {
+  background: rgba(248, 224, 235, .95);
+  color: #70344f;
+}
 
 body.theme-livros .token-chip,
 body.theme-livros .token-marker {
@@ -575,6 +602,22 @@ body.theme-livros .token-marker {
 body.theme-livros .cover-square {
   border-color: rgba(122, 61, 87, .4);
   background: #fff4fa;
+}
+
+.cover-opinion-field {
+  display: block;
+  width: 100%;
+  gap: .4rem;
+  margin-top: .9rem;
+}
+
+.cover-opinion-field textarea {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 240px;
+  resize: vertical;
 }
 
 /* Biblioteca de jogos (placeholder retro) */
