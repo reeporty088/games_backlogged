@@ -11,18 +11,32 @@ function defaultToken() {
 function normalizeStore(rawStore) {
   const base = rawStore || {};
   const tokens = Array.isArray(base.tokens) && base.tokens.length ? base.tokens : [defaultToken()];
-  const normalizedTokens = tokens.map((token) => ({
-    ...token,
-    imageUrl: token.imageUrl || token.imageDataUrl || ''
-  }));
+  const normalizedTokens = tokens.map((token) => {
+    const { imageDataUrl, ...tokenRest } = token || {};
+    return {
+      ...tokenRest,
+      imageUrl: tokenRest.imageUrl || imageDataUrl || ''
+    };
+  });
   const games = Array.isArray(base.games)
-    ? base.games.map((game) => ({
-        ...game,
-        coverUrl: game.coverUrl || game.coverDataUrl || ''
-      }))
+    ? base.games.map((game) => {
+        const { coverDataUrl, ...gameRest } = game || {};
+        return {
+          ...gameRest,
+          coverUrl: gameRest.coverUrl || coverDataUrl || ''
+        };
+      })
     : [];
 
   return { games, tokens: normalizedTokens };
+}
+
+function persistLocalStore(store) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  } catch (error) {
+    console.warn('Falha ao salvar no cache local. O armazenamento do navegador pode estar cheio.', error);
+  }
 }
 
 async function loadStore() {
@@ -38,12 +52,12 @@ async function loadStore() {
 
     if (!hasRemoteData && localStore) {
       await saveRemoteStore(localStore);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(localStore));
+      persistLocalStore(localStore);
       return localStore;
     }
 
     const store = normalizeStore(remote);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    persistLocalStore(store);
     return store;
   } catch (error) {
     console.warn('Falha ao carregar do Firebase. Usando cache local.', error);
@@ -53,7 +67,7 @@ async function loadStore() {
 
 async function saveStore(store) {
   const normalized = normalizeStore(store);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+  persistLocalStore(normalized);
 
   try {
     await withTimeout(saveRemoteStore(normalized), 12000, 'salvar no Firebase');
@@ -76,6 +90,69 @@ function withTimeout(promise, timeoutMs, operationName) {
   return Promise.race([promise, timeoutPromise]).finally(() => {
     window.clearTimeout(timeoutId);
   });
+}
+
+async function convertImageToWebp(file, options = {}) {
+  if (!file) return null;
+  const {
+    maxSide = 1200,
+    quality = 0.84
+  } = options;
+
+  let sourceWidth = 0;
+  let sourceHeight = 0;
+  let drawSource = null;
+
+  if (typeof createImageBitmap === 'function') {
+    const bitmap = await createImageBitmap(file);
+    sourceWidth = bitmap.width;
+    sourceHeight = bitmap.height;
+    drawSource = bitmap;
+  } else {
+    const img = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    sourceWidth = img.width;
+    sourceHeight = img.height;
+    drawSource = img;
+  }
+
+  const largestSide = Math.max(sourceWidth, sourceHeight);
+  const scale = largestSide > maxSide ? maxSide / largestSide : 1;
+  const targetWidth = Math.max(1, Math.round(sourceWidth * scale));
+  const targetHeight = Math.max(1, Math.round(sourceHeight * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+
+  const context = canvas.getContext('2d');
+  if (!context) {
+    throw new Error('Não foi possível inicializar o canvas para converter imagem.');
+  }
+  context.drawImage(drawSource, 0, 0, targetWidth, targetHeight);
+  if (typeof drawSource.close === 'function') drawSource.close();
+
+  const webpBlob = await new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error('Não foi possível converter imagem para WebP.'));
+        return;
+      }
+      resolve(blob);
+    }, 'image/webp', quality);
+  });
+
+  const baseName = (file.name || 'imagem').replace(/\.[^.]+$/, '').replace(/\s+/g, '-').toLowerCase();
+  return new File([webpBlob], `${baseName}.webp`, { type: 'image/webp' });
 }
 
 function pad2(n) {
@@ -372,6 +449,7 @@ async function initPlanoPage() {
     if (!sourceImg && currentCoverUrl) {
       sourceImg = new Image();
       sourceImg.onload = renderCover;
+      sourceImg.crossOrigin = 'anonymous';
       sourceImg.src = currentCoverUrl;
       return;
     }
@@ -391,11 +469,19 @@ async function initPlanoPage() {
   }
 
   function updateCoverFromCanvas() {
-    return new Promise((resolve) => {
-      coverCanvas.toBlob((blob) => {
-        coverFileToUpload = blob;
-        resolve();
-      }, 'image/png');
+    return new Promise((resolve, reject) => {
+      try {
+        coverCanvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error('Não foi possível preparar a capa para envio.'));
+            return;
+          }
+          coverFileToUpload = new File([blob], `cover-${Date.now()}.webp`, { type: 'image/webp' });
+          resolve();
+        }, 'image/webp', 0.9);
+      } catch (error) {
+        reject(error);
+      }
     });
   }
 
@@ -420,8 +506,12 @@ async function initPlanoPage() {
   [zoomEl, panXEl, panYEl].forEach((el) =>
     el.addEventListener('input', async () => {
       if (!sourceImg) return;
-      renderCover();
-      await updateCoverFromCanvas();
+      try {
+        renderCover();
+        await updateCoverFromCanvas();
+      } catch (error) {
+        console.error('Falha ao processar capa no canvas:', error);
+      }
     })
   );
 
@@ -540,7 +630,8 @@ async function initPlanoPage() {
     let imageUrl = '';
     if (file) {
       try {
-        imageUrl = await withTimeout(uploadImage(file, 'tokens'), 15000, 'enviar token');
+        const optimizedToken = await convertImageToWebp(file, { maxSide: 512, quality: 0.82 });
+        imageUrl = await withTimeout(uploadImage(optimizedToken, 'tokens'), 15000, 'enviar token');
       } catch (error) {
         console.error('Falha ao subir imagem de token:', error);
         alert('Não foi possível subir a imagem do token para o Firebase.');
