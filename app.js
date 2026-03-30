@@ -520,11 +520,6 @@ async function initPlanoPage() {
     return { row: LETTERS[rowIndex], col: NUMS[colIndex], rowIndex, colIndex };
   }
 
-  function getPointFromTouch(touch) {
-    if (!touch) return null;
-    return getPointFromEvent({ clientX: touch.clientX, clientY: touch.clientY });
-  }
-
   function updateRatingPosition(tokenId, pos) {
     if (!tokenId || !pos) return;
     const token = store.tokens.find((candidate) => candidate.id === tokenId);
@@ -538,33 +533,21 @@ async function initPlanoPage() {
     renderRatings();
   }
 
-  let activeTouchTokenId = null;
+  let selectedTokenId = null;
 
-  function attachTouchDrag(el, tokenId) {
-    el.addEventListener('touchstart', (event) => {
-      if (!event.touches?.length) return;
-      activeTouchTokenId = tokenId;
-      event.preventDefault();
-    }, { passive: false });
+  function syncSelectedTokenVisualState() {
+    tokensStrip.querySelectorAll('.token-chip').forEach((chip) => {
+      chip.classList.toggle('token-selected', chip.dataset.tokenId === selectedTokenId);
+    });
+    chart.querySelectorAll('.token-marker').forEach((marker) => {
+      marker.classList.toggle('token-selected', marker.dataset.tokenId === selectedTokenId);
+    });
   }
 
-  chart.addEventListener('touchmove', (event) => {
-    if (!activeTouchTokenId) return;
-    event.preventDefault();
-  }, { passive: false });
-
-  chart.addEventListener('touchend', (event) => {
-    if (!activeTouchTokenId) return;
-    const touch = event.changedTouches?.[0];
-    const pos = getPointFromTouch(touch);
-    updateRatingPosition(activeTouchTokenId, pos);
-    activeTouchTokenId = null;
-    event.preventDefault();
-  }, { passive: false });
-
-  chart.addEventListener('touchcancel', () => {
-    activeTouchTokenId = null;
-  });
+  function setSelectedToken(tokenId) {
+    selectedTokenId = tokenId;
+    syncSelectedTokenVisualState();
+  }
 
   function renderChartStatic() {
     chart.innerHTML = '<div class="axis-v"></div><div class="axis-h"></div>';
@@ -603,7 +586,9 @@ async function initPlanoPage() {
       chip.addEventListener('dragstart', (e) => {
         e.dataTransfer.setData('text/token-id', token.id);
       });
-      attachTouchDrag(chip, token.id);
+      chip.addEventListener('click', () => {
+        setSelectedToken(token.id);
+      });
 
       chip.querySelector('.token-delete-btn').addEventListener('click', async (event) => {
         event.preventDefault();
@@ -613,6 +598,9 @@ async function initPlanoPage() {
         store.tokens = store.tokens.filter((candidate) => candidate.id !== token.id);
         if (!store.tokens.length) {
           store.tokens = [defaultToken()];
+        }
+        if (selectedTokenId === token.id) {
+          selectedTokenId = null;
         }
         ratings = ratings.filter((rate) => rate.tokenId !== token.id);
         await saveStore(store);
@@ -649,14 +637,18 @@ async function initPlanoPage() {
         marker.style.top = `${((LETTERS.indexOf(rate.row) + 0.5) / 6) * 100}%`;
         marker.style.setProperty('--stack-offset', `${(index - (total - 1) / 2) * spacing}px`);
         marker.innerHTML = `${getTokenImage(token)}<span>${token.name}</span>`;
+        marker.dataset.tokenId = rate.tokenId;
         marker.draggable = true;
         marker.addEventListener('dragstart', (e) => {
           e.dataTransfer.setData('text/token-id', rate.tokenId);
         });
-        attachTouchDrag(marker, rate.tokenId);
+        marker.addEventListener('click', () => {
+          setSelectedToken(rate.tokenId);
+        });
         chart.appendChild(marker);
       });
     }
+    syncSelectedTokenVisualState();
   }
 
   chart.addEventListener('dragover', (e) => e.preventDefault());
@@ -667,6 +659,13 @@ async function initPlanoPage() {
 
     const pos = getPointFromEvent(e);
     updateRatingPosition(tokenId, pos);
+  });
+
+  chart.addEventListener('click', (e) => {
+    if (!selectedTokenId) return;
+    if (e.target.closest('.token-marker')) return;
+    const pos = getPointFromEvent(e);
+    updateRatingPosition(selectedTokenId, pos);
   });
 
   addTokenBtn.addEventListener('click', async () => {
