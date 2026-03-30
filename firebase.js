@@ -32,6 +32,18 @@ const STORE_COLLECTION = 'backlog';
 const STORE_DOC = 'store';
 const LEGACY_RTDB_PATH = 'backlogStore';
 
+function createId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+
+  const randomHex = globalThis.crypto?.getRandomValues
+    ? [...globalThis.crypto.getRandomValues(new Uint8Array(16))]
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('')
+    : `${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
+
+  return `${Date.now()}-${randomHex}`;
+}
+
 function getStoreDocRef() {
   return doc(firestore, STORE_COLLECTION, STORE_DOC);
 }
@@ -66,8 +78,12 @@ export async function saveRemoteStore(store) {
 }
 
 export async function uploadImage(fileOrBlob, pathPrefix) {
+  if (!fileOrBlob) {
+    throw new Error('Arquivo de imagem inválido para upload.');
+  }
+
   const cleanName = fileOrBlob.name?.replace(/\s+/g, '-').toLowerCase() || 'image.png';
-  const path = `${pathPrefix}/${Date.now()}-${crypto.randomUUID()}-${cleanName}`;
+  const path = `${pathPrefix}/${Date.now()}-${createId()}-${cleanName}`;
   const imageRef = storageRef(storage, path);
   await uploadBytes(imageRef, fileOrBlob, {
     contentType: fileOrBlob.type || 'image/png'
