@@ -81,6 +81,70 @@ async function saveStore(store) {
   }
 }
 
+
+async function convertImageToWebp(file, options = {}) {
+  if (!file) return null;
+  const {
+    maxSide = 1200,
+    quality = 0.84
+  } = options;
+
+  let sourceWidth = 0;
+  let sourceHeight = 0;
+  let drawSource = null;
+
+  if (typeof createImageBitmap === 'function') {
+    const bitmap = await createImageBitmap(file);
+    sourceWidth = bitmap.width;
+    sourceHeight = bitmap.height;
+    drawSource = bitmap;
+  } else {
+    const img = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    sourceWidth = img.width;
+    sourceHeight = img.height;
+    drawSource = img;
+  }
+
+  const largestSide = Math.max(sourceWidth, sourceHeight);
+  const scale = largestSide > maxSide ? maxSide / largestSide : 1;
+  const targetWidth = Math.max(1, Math.round(sourceWidth * scale));
+  const targetHeight = Math.max(1, Math.round(sourceHeight * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+
+  const context = canvas.getContext('2d');
+  if (!context) {
+    throw new Error('Não foi possível inicializar o canvas para converter imagem.');
+  }
+  context.drawImage(drawSource, 0, 0, targetWidth, targetHeight);
+  if (typeof drawSource.close === 'function') drawSource.close();
+
+  const webpBlob = await new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error('Não foi possível converter imagem para WebP.'));
+        return;
+      }
+      resolve(blob);
+    }, 'image/webp', quality);
+  });
+
+  const baseName = (file.name || 'imagem').replace(/\.[^.]+$/, '').replace(/\s+/g, '-').toLowerCase();
+  return new File([webpBlob], `${baseName}.webp`, { type: 'image/webp' });
+}
+
 function withTimeout(promise, timeoutMs, operationName) {
   let timeoutId;
   const timeoutPromise = new Promise((_, reject) => {
@@ -511,7 +575,8 @@ async function initPlanoLivroPage() {
       let imageUrl = '';
       if (file) {
         try {
-          imageUrl = await withTimeout(uploadImage(file, 'book-tokens'), 15000, 'enviar token');
+          const optimizedToken = await convertImageToWebp(file, { maxSide: 512, quality: 0.82 });
+          imageUrl = await withTimeout(uploadImage(optimizedToken, 'book-tokens'), 15000, 'enviar token');
         } catch (error) {
           console.error('Falha ao subir imagem de token:', error);
           alert('Não foi possível subir a imagem do token para o Firebase.');
