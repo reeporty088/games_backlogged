@@ -1,4 +1,4 @@
-import { loadRemoteStore, saveRemoteStore, uploadImage } from './firebase.js';
+import { loadRemoteStore, saveRemoteStore } from './firebase.js';
 
 const STORAGE_KEY = 'noites_indie_store_v2';
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -92,7 +92,7 @@ function withTimeout(promise, timeoutMs, operationName) {
   });
 }
 
-async function convertImageToWebp(file, options = {}) {
+async function convertImageToWebpDataUrl(file, options = {}) {
   if (!file) return null;
   const {
     maxSide = 1200,
@@ -141,18 +141,11 @@ async function convertImageToWebp(file, options = {}) {
   context.drawImage(drawSource, 0, 0, targetWidth, targetHeight);
   if (typeof drawSource.close === 'function') drawSource.close();
 
-  const webpBlob = await new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        reject(new Error('Não foi possível converter imagem para WebP.'));
-        return;
-      }
-      resolve(blob);
-    }, 'image/webp', quality);
-  });
-
-  const baseName = (file.name || 'imagem').replace(/\.[^.]+$/, '').replace(/\s+/g, '-').toLowerCase();
-  return new File([webpBlob], `${baseName}.webp`, { type: 'image/webp' });
+  try {
+    return canvas.toDataURL('image/webp', quality);
+  } catch (error) {
+    throw new Error('Não foi possível converter imagem para DataURL.');
+  }
 }
 
 function pad2(n) {
@@ -675,11 +668,10 @@ async function initPlanoPage() {
     let imageUrl = '';
     if (file) {
       try {
-        const optimizedToken = await convertImageToWebp(file, { maxSide: 512, quality: 0.82 });
-        imageUrl = await withTimeout(uploadImage(optimizedToken, 'tokens'), 15000, 'enviar token');
+        imageUrl = await convertImageToWebpDataUrl(file, { maxSide: 512, quality: 0.82 });
       } catch (error) {
-        console.error('Falha ao subir imagem de token:', error);
-        alert('Não foi possível subir a imagem do token para o Firebase.');
+        console.error('Falha ao processar imagem de token:', error);
+        alert('Não foi possível preparar a imagem do token.');
         return;
       }
     }
